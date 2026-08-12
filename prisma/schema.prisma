@@ -1,0 +1,214 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  displayName String
+  email     String?  @unique
+  avatarKey String   // fairy, wizard, knight, archer, elf, dwarf
+  roleClass String   // Same as avatarKey
+  socketId  String?  @unique
+  isConnected Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  teamMembers   TeamMember[]
+  playerAnswers PlayerAnswer[]
+  adminUser     AdminUser?
+}
+
+model AdminUser {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  email     String   @unique
+  password  String   // In production, use bcrypt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GameSession {
+  id                    String   @id @default(cuid())
+  name                  String
+  theme                 String   @default("Medieval Fantasy")
+  status                String   @default("draft") // draft, published, live, paused, finished
+  maxPlayers            Int      @default(200)
+  minPlayers            Int      @default(10)
+  teamSize              Int      @default(5)
+  totalDurationMinutes  Int      @default(45)
+  numberOfStages        Int      @default(10)
+  allowIncompleteTeams  Boolean  @default(true)
+  startsAt              DateTime?
+  endsAt                DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  teams         Team[]
+  stages        Stage[]
+  playerAnswers PlayerAnswer[]
+  teamResults   TeamStageResult[]
+  leaderboards  Leaderboard[]
+}
+
+model Team {
+  id              String   @id @default(cuid())
+  gameSessionId   String
+  name            String
+  currentStage    Int      @default(0)
+  totalCorrect    Int      @default(0)
+  totalTimeSeconds Int     @default(0)
+  finalScore      Int      @default(0)
+  finishedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  gameSession   GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+  members       TeamMember[]
+  playerAnswers PlayerAnswer[]
+  stageResults  TeamStageResult[]
+  leaderboard   Leaderboard?
+
+  @@index([gameSessionId])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  joinedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model Stage {
+  id                String   @id @default(cuid())
+  gameSessionId     String
+  stageNumber       Int
+  title             String
+  description       String?
+  visualTheme       String   // "ancient_gate", "torch_hall", etc
+  timeLimitSeconds  Int      @default(270)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  gameSession   GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+  questions     Question[]
+  playerAnswers PlayerAnswer[]
+  stageResults  TeamStageResult[]
+
+  @@unique([gameSessionId, stageNumber])
+  @@index([gameSessionId])
+}
+
+model Question {
+  id            String   @id @default(cuid())
+  stageId       String
+  questionType  String   @default("multiple_choice") // multiple_choice, short_text, true_false
+  questionText  String
+  optionA       String?
+  optionB       String?
+  optionC       String?
+  optionD       String?
+  correctAnswer String
+  pointsBase    Int      @default(100)
+  difficulty    String   @default("medium") // easy, medium, hard
+  explanation   String?
+  imageUrl      String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  stage         Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  playerAnswers PlayerAnswer[]
+
+  @@index([stageId])
+}
+
+model PlayerAnswer {
+  id                   String   @id @default(cuid())
+  gameSessionId        String
+  teamId               String
+  userId               String
+  stageId              String
+  questionId           String
+  submittedAnswer      String
+  isCorrect            Boolean
+  responseTimeSeconds  Int
+  pointsAwarded        Int      @default(0)
+  submittedAt          DateTime @default(now())
+
+  // Relations
+  gameSession GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+  team        Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stage       Stage       @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  question    Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId, questionId])
+  @@index([gameSessionId])
+  @@index([teamId])
+  @@index([userId])
+  @@index([stageId])
+}
+
+model TeamStageResult {
+  id                        String   @id @default(cuid())
+  gameSessionId             String
+  teamId                    String
+  stageId                   String
+  correctAnswers            Int
+  totalAnswers              Int
+  averageResponseTimeSeconds Int
+  stageScore                Int      @default(0)
+  completedAt               DateTime?
+  createdAt                 DateTime @default(now())
+
+  // Relations
+  gameSession GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+  team        Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  stage       Stage       @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, stageId])
+  @@index([gameSessionId])
+  @@index([teamId])
+}
+
+model Leaderboard {
+  id               String   @id @default(cuid())
+  gameSessionId    String
+  teamId           String   @unique
+  rank             Int
+  totalCorrect     Int
+  totalTimeSeconds Int
+  finalScore       Int
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  gameSession GameSession @relation(fields: [gameSessionId], references: [id], onDelete: Cascade)
+  team        Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([gameSessionId])
+}
