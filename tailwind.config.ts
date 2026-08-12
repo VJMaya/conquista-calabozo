@@ -1,4 +1,5 @@
-import type { Config } from 'tailwindcss'
+// tailwind.config.ts
+import type { Config } from 'tailwindcss';
 
 const config: Config = {
   content: [
@@ -8,30 +9,23 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Dark dungeon theme
-        'dungeon-bg': '#0B0D12',
-        'dungeon-dark': '#111827',
-        'dungeon-secondary': '#1F2937',
-        'dungeon-border': '#D6A437',
-        'dungeon-purple': '#4C1D95',
-        'dungeon-blue': '#2563EB',
-        'dungeon-green': '#22C55E',
-        'dungeon-red': '#EF4444',
-        'dungeon-text': '#F9FAFB',
-        'dungeon-text-secondary': '#D1D5DB',
-      },
-      fontFamily: {
-        sans: ['system-ui', 'sans-serif'],
-      },
-      borderRadius: {
-        none: '0',
+        'dungeon-bg': '#0a0e27',
+        'dungeon-dark': '#141829',
+        'dungeon-secondary': '#1a1f3a',
+        'dungeon-text': '#e0e6ff',
+        'dungeon-text-secondary': '#8892b0',
+        'dungeon-border': '#d4af37',
+        'dungeon-red': '#c41e3a',
+        'dungeon-green': '#52b788',
+        'dungeon-blue': '#4d9bf4',
+        'dungeon-purple': '#7c3aed',
       },
       boxShadow: {
-        'dungeon': '0 0 10px rgba(214, 164, 55, 0.5)',
+        'dungeon': '0 0 20px rgba(212, 175, 55, 0.3)',
       },
     },
   },
   plugins: [],
-}
+};
 
-export default config
+export default config;
